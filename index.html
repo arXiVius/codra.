@@ -24,11 +24,11 @@
         /* Import Google Fonts for a clean look */
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
+
         body {
             font-family: 'Inter', sans-serif;
         }
-        
+
         .terminal-font {
             font-family: 'IBM Plex Mono', monospace;
         }
@@ -41,10 +41,10 @@
         .scrollbar-hide::-webkit-scrollbar {
             display: none;
         }
-        
-        /* Consistent form styling for the GUI */
-        .gui-input, .gui-select {
-            @apply w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-500;
+
+        /* Consistent form styling for the GUI, now matching the CLI theme */
+        .gui-input, .gui-select-button {
+            @apply w-full p-3 rounded-lg border border-gray-700 bg-black bg-opacity-80 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-500;
         }
     </style>
 </head>
@@ -152,9 +152,42 @@
             luhnCheckFailed: 'Error: Luhn algorithm check failed.',
             urlShortenError: 'Error: Failed to shorten URL.'
         };
-        
+
+        // Custom Tool Dropdown Data
+        const toolOptions = {
+            'Programming & Data': [
+                { id: 'password-gen', name: strings.toolNames['password-gen'] },
+                { id: 'password-check', name: strings.toolNames['password-check'] },
+                { id: 'url-encode', name: strings.toolNames['url-encode'] },
+                { id: 'url-decode', name: strings.toolNames['url-decode'] },
+                { id: 'base64-encode', name: strings.toolNames['base64-encode'] },
+                { id: 'base64-decode', name: strings.toolNames['base64-decode'] },
+                { id: 'unit-converter', name: strings.toolNames['unit-converter'] },
+                { id: 'markdown-to-json', name: strings.toolNames['markdown-to-json'] },
+                { id: 'hex-to-rgb', name: strings.toolNames['hex-to-rgb'] },
+                { id: 'rgb-to-hex', name: strings.toolNames['rgb-to-hex'] },
+            ],
+            'Network & Security': [
+                { id: 'myip', name: strings.toolNames['myip'] },
+                { id: 'rev-dns', name: strings.toolNames['rev-dns'] },
+                { id: 'url-shorten', name: strings.toolNames['url-shorten'] },
+                { id: 'ip-to-binary', name: strings.toolNames['ip-to-binary'] },
+                { id: 'validate-email', name: strings.toolNames['validate-email'] },
+                { id: 'validate-credit-card', name: strings.toolNames['validate-credit-card'] },
+            ],
+            'Image & Graphics': [
+                { id: 'qr-gen', name: strings.toolNames['qr-gen'] },
+                { id: 'qr-decode', name: strings.toolNames['qr-decode'] },
+                { id: 'image-to-grayscale', name: strings.toolNames['image-to-grayscale'] },
+                { id: 'base64-to-image', name: strings.toolNames['base64-to-image'] },
+            ],
+            'System & Environment': [
+                { id: 'user-agent', name: strings.toolNames['user-agent'] },
+            ]
+        };
+
         // --- Core Utility Functions ---
-        
+
         // A simple check for password strength
         const handlePasswordCheck = (password) => {
             let score = 0;
@@ -171,7 +204,7 @@
             output.push(`Password Strength: ${strength} (${score}/5)`);
             return output;
         };
-        
+
         // Generates a random, strong password
         const handlePasswordGen = () => {
             const length = 16;
@@ -182,7 +215,7 @@
             }
             return [`Generated Password: ${password}`];
         };
-        
+
         // Handles URL encoding and decoding
         const handleUrlEncodeDecode = (action, text) => {
             try {
@@ -212,7 +245,7 @@
                 return [strings.invalidBase64];
             }
         };
-        
+
         // Hashes text using SHA-256
         const handleTextHash = async (text) => {
             try {
@@ -236,7 +269,7 @@
                 return [strings.invalidJson];
             }
         };
-        
+
         // Handles string reversal
         const handleStringReverse = (text) => {
             return [`Reversed string: ${text.split('').reverse().join('')}`];
@@ -260,7 +293,7 @@
                 case 'upper': return [`Uppercase: ${text.toUpperCase()}`];
                 case 'lower': return [`Lowercase: ${text.toLowerCase()}`];
                 case 'title': return [`Title Case: ${text.replace(/\b\w/g, c => c.toUpperCase())}`];
-                case 'camel': 
+                case 'camel':
                     let camel = text.replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => index === 0 ? word.toLowerCase() : word.toUpperCase()).replace(/\s+/g, '');
                     return [`Camel Case: ${camel}`];
                 case 'snake': return [`Snake Case: ${text.toLowerCase().replace(/\s+/g, '_')}`];
@@ -275,7 +308,7 @@
                 return String.fromCharCode((c <= 'Z' ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26);
             })}`];
         };
-        
+
         // Converts a Unix timestamp to a human-readable date
         const handleTimestampToDate = (timestamp) => {
             const date = dayjs.unix(timestamp);
@@ -291,7 +324,7 @@
             const date = dayjs.unix(timestamp);
             return [`Current Unix Timestamp: ${timestamp}`, `Current Date: ${date.format('YYYY-MM-DD HH:mm:ss Z')}`];
         };
-        
+
         // Converts Markdown to HTML
         const handleMarkdownToHtml = (md) => {
             let html = md.replace(/^### (.*$)/gim, '<h3>$1</h3>')
@@ -301,7 +334,7 @@
                          .replace(/\*(.*)\*/gim, '<i>$1</i>');
             return [`HTML Output:\n${html}`];
         };
-        
+
         // Converts Markdown to JSON
         const handleMarkdownToJson = (md) => {
             const lines = md.split('\n');
@@ -367,7 +400,7 @@
                 return ['Error: DNS lookup failed.'];
             }
         };
-        
+
         // Handles reverse DNS lookup
         const handleRevDnsLookup = async (ip) => {
             try {
@@ -424,7 +457,7 @@
                 return [strings.apiError];
             }
         };
-        
+
         // Handles data size unit conversion
         const handleUnitConverter = (value, fromUnit, toUnit) => {
             const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -453,7 +486,7 @@
                     ecl: "M"
                 });
                 const dataURI = qrcode.toDataURL();
-                return [`QR Code generated. You can view it by copying the data URI below into your browser's address bar:\n\n${dataURI}`];
+                return [`QR Code generated. You can view it by copying the data URI below into your browser's address bar:\n\n${dataURI}`, dataURI];
             } catch (e) {
                 return ['Error: Failed to generate QR code.'];
             }
@@ -465,7 +498,7 @@
                 const img = new Image();
                 img.crossOrigin = "Anonymous";
                 img.src = imageUrl;
-                
+
                 return new Promise((resolve) => {
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
@@ -475,7 +508,7 @@
                         ctx.drawImage(img, 0, 0, img.width, img.height);
                         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                         const code = jsQR(imageData.data, imageData.width, imageData.height);
-                        
+
                         if (code) {
                             resolve([`Decoded QR Code: ${code.data}`]);
                         } else {
@@ -490,7 +523,7 @@
                 return [strings.invalidQr];
             }
         };
-        
+
         // Converts an image URL to a grayscale data URI
         const handleImageToGrayscale = (imageUrl) => {
             return new Promise((resolve) => {
@@ -504,7 +537,7 @@
                     canvas.width = img.width;
                     canvas.height = img.height;
                     ctx.drawImage(img, 0, 0, img.width, img.height);
-                    
+
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     const pixels = imageData.data;
                     for (let i = 0; i < pixels.length; i += 4) {
@@ -525,7 +558,7 @@
                 };
             });
         };
-        
+
         // Shortens a URL using a public API
         const handleUrlShorten = async (url) => {
             try {
@@ -606,7 +639,7 @@
                 return [strings.luhnCheckFailed];
             }
         };
-        
+
         // Displays the user's browser User-Agent string
         const handleUserAgent = () => {
             return [`User-Agent: ${navigator.userAgent}`];
@@ -614,11 +647,23 @@
 
         // --- Main App Component ---
         const App = () => {
+            // State for the CLI
             const [terminalOutput, setTerminalOutput] = useState([]);
             const [currentInput, setCurrentInput] = useState('');
             const [isProcessing, setIsProcessing] = useState(false);
             const [isGuiMode, setIsGuiMode] = useState(false);
             const terminalRef = useRef(null);
+
+            // State for the GUI
+            const [tool, setTool] = useState('password-gen');
+            const [inputValue, setInputValue] = useState('');
+            const [guiOutput, setGuiOutput] = useState([]);
+            const [outputType, setOutputType] = useState('text');
+            const [qrImageSrc, setQrImageSrc] = useState('');
+
+            // State for the custom dropdown
+            const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+            const dropdownRef = useRef(null);
 
             const asciiHeader = [
                 '                                                                     ',
@@ -664,7 +709,21 @@
                 if (terminalRef.current) {
                     terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
                 }
-            }, [terminalOutput, isGuiMode]);
+            }, [terminalOutput]);
+
+            // Handles clicks outside the dropdown to close it
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                        setIsDropdownOpen(false);
+                    }
+                };
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => {
+                    document.removeEventListener("mousedown", handleClickOutside);
+                };
+            }, [dropdownRef]);
+
 
             // Command Handlers
             const handleCommand = async (command) => {
@@ -678,23 +737,23 @@
                     case 'help':
                         output = [strings.commandsTitle, '-------------------', ...strings.commands, ''];
                         break;
-                    
+
                     case 'gui':
                         setIsGuiMode(true);
                         output = [strings.gui];
                         break;
-                    
+
                     case 'clear':
                         setTerminalOutput([]);
                         setIsProcessing(false);
                         return;
-                    
+
                     case 'clear-history':
                         localStorage.removeItem('terminalOutput');
                         setTerminalOutput(['Terminal history cleared. Your session will not be saved on reload.']);
                         setIsProcessing(false);
                         return;
-                    
+
                     case 'exit':
                         if (isGuiMode) {
                             setIsGuiMode(false);
@@ -703,7 +762,7 @@
                             output = [strings.exit];
                         }
                         break;
-                    
+
                     case 'password-check':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: password-check <password>`];
@@ -723,7 +782,7 @@
                             output = handleBase64(args[1], args.slice(2).join(' '));
                         }
                         break;
-                        
+
                     case 'url-encode':
                     case 'url-decode':
                         if (args.length < 2) {
@@ -740,7 +799,7 @@
                             output = await handleTextHash(args.slice(1).join(' '));
                         }
                         break;
-                    
+
                     case 'json-format':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: json-format <json_string>`];
@@ -748,7 +807,7 @@
                             output = handleJsonFormat(args.slice(1).join(' '));
                         }
                         break;
-                    
+
                     case 'string-reverse':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: string-reverse <text>`];
@@ -756,7 +815,7 @@
                             output = handleStringReverse(args.slice(1).join(' '));
                         }
                         break;
-                    
+
                     case 'string-count':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: string-count <text>`];
@@ -764,7 +823,7 @@
                             output = handleStringCount(args.slice(1).join(' '));
                         }
                         break;
-                    
+
                     case 'case-convert':
                         if (args.length < 3) {
                             output = [`${strings.missingArg} Usage: case-convert <case> <text>`];
@@ -780,11 +839,11 @@
                             output = handleRot13(args.slice(1).join(' '));
                         }
                         break;
-                    
+
                     case 'epoch':
                         output = handleEpochTime();
                         break;
-                    
+
                     case 'timestamp-to-date':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: timestamp-to-date <timestamp>`];
@@ -800,7 +859,7 @@
                             output = handleMarkdownToHtml(args.slice(1).join(' '));
                         }
                         break;
-                    
+
                     case 'markdown-to-json':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: markdown-to-json <text>`];
@@ -816,7 +875,7 @@
                             output = handleJsonToYaml(args.slice(1).join(' '));
                         }
                         break;
-                    
+
                     case 'yaml-to-json':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: yaml-to-json <yaml_string>`];
@@ -824,7 +883,7 @@
                             output = handleYamlToJson(args.slice(1).join(' '));
                         }
                         break;
-                    
+
                     case 'convert':
                         if (args.length < 5 || args[3].toLowerCase() !== 'to') {
                             output = [strings.invalidUnit];
@@ -840,7 +899,7 @@
                             output = handleQrCodeGen(args.slice(1).join(' '));
                         }
                         break;
-                    
+
                     case 'qrcode-decode':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: qrcode-decode <image_url>`];
@@ -848,7 +907,7 @@
                             output = await handleQrCodeDecode(args[1]);
                         }
                         break;
-                        
+
                     case 'image-to-grayscale':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: image-to-grayscale <image_url>`];
@@ -856,7 +915,7 @@
                             output = await handleImageToGrayscale(args[1]);
                         }
                         break;
-                    
+
                     case 'base64-to-image':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: base64-to-image <base64_string>`];
@@ -877,7 +936,7 @@
                             output = await handleUrlShorten(args[1]);
                         }
                         break;
-                    
+
                     case 'ip-to-binary':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: ip-to-binary <ip>`];
@@ -885,7 +944,7 @@
                             output = handleIpToBinary(args[1]);
                         }
                         break;
-                    
+
                     case 'hex-to-rgb':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: hex-to-rgb <hex_code>`];
@@ -893,7 +952,7 @@
                             output = handleHexToRgb(args[1]);
                         }
                         break;
-                    
+
                     case 'rgb-to-hex':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: rgb-to-hex <r,g,b>`];
@@ -901,7 +960,7 @@
                             output = handleRgbToHex(args.slice(1).join(''));
                         }
                         break;
-                    
+
                     case 'validate-email':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: validate-email <email>`];
@@ -909,7 +968,7 @@
                             output = handleValidateEmail(args[1]);
                         }
                         break;
-                    
+
                     case 'validate-credit-card':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: validate-credit-card <number>`];
@@ -917,15 +976,15 @@
                             output = handleValidateCreditCard(args[1]);
                         }
                         break;
-                    
+
                     case 'user-agent':
                         output = handleUserAgent();
                         break;
-                    
+
                     case 'myip':
                         output = await handleMyIp();
                         break;
-                    
+
                     case 'ip':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: ip <address>`];
@@ -933,7 +992,7 @@
                             output = await handleIpLookup(args[1]);
                         }
                         break;
-                    
+
                     case 'rev-dns':
                         if (args.length < 2) {
                             output = [`${strings.missingArg} Usage: rev-dns <ip>`];
@@ -949,12 +1008,12 @@
                             output = await handleDnsLookup(args[1]);
                         }
                         break;
-                    
+
                     default:
                         output = [`${strings.error} ${command}`, strings.help];
                         break;
                 }
-                
+
                 setTerminalOutput(prev => [...prev, ...output, '']);
                 setIsProcessing(false);
             };
@@ -968,224 +1027,131 @@
                     }
                 }
             };
-            
-            const renderGui = () => {
-                const [tool, setTool] = useState('password-gen');
-                const [inputValue, setInputValue] = useState('');
-                const [guiOutput, setGuiOutput] = useState([]);
-                const [outputType, setOutputType] = useState('text');
-                const [qrImageSrc, setQrImageSrc] = useState('');
 
-                const runTool = async () => {
-                    let output;
-                    let value, fromUnit, toUnit, hex;
-                    setOutputType('text');
-                    setQrImageSrc('');
+            const runTool = async () => {
+                let output;
+                let value, fromUnit, toUnit, hex;
+                setOutputType('text');
+                setQrImageSrc('');
 
-                    switch (tool) {
-                        case 'password-gen':
-                            output = handlePasswordGen();
-                            break;
-                        case 'password-check':
-                            output = handlePasswordCheck(inputValue);
-                            break;
-                        case 'url-encode':
-                            output = handleUrlEncodeDecode('url-encode', inputValue);
-                            break;
-                        case 'url-decode':
-                            output = handleUrlEncodeDecode('url-decode', inputValue);
-                            break;
-                        case 'base64-encode':
-                            output = handleBase64('encode', inputValue);
-                            break;
-                        case 'base64-decode':
-                            output = handleBase64('decode', inputValue);
-                            break;
-                        case 'myip':
-                             output = await handleMyIp();
-                             break;
-                        case 'qr-gen':
-                            output = handleQrCodeGen(inputValue);
-                            if (output[1] && output[1].startsWith('data:image')) {
-                                setQrImageSrc(output[1]);
-                                setOutputType('image');
-                            }
-                            break;
-                        case 'qr-decode':
-                            output = await handleQrCodeDecode(inputValue);
-                            break;
-                        case 'unit-converter':
-                            const parts = inputValue.split(/\s+/);
-                            if (parts.length === 4 && parts[2].toLowerCase() === 'to') {
-                                value = parseFloat(parts[0]);
-                                fromUnit = parts[1];
-                                toUnit = parts[3];
-                                output = handleUnitConverter(value, fromUnit, toUnit);
-                            } else {
-                                output = [strings.invalidUnit];
-                            }
-                            break;
-                        case 'rev-dns':
-                            output = await handleRevDnsLookup(inputValue);
-                            break;
-                        case 'image-to-grayscale':
-                            output = await handleImageToGrayscale(inputValue);
-                            if (output[1] && output[1].startsWith('data:image')) {
-                                setQrImageSrc(output[1]);
-                                setOutputType('image');
-                            }
-                            break;
-                        case 'base64-to-image':
-                            let b64 = inputValue.trim();
-                            if (!b64.startsWith('data:image')) {
-                                b64 = `data:image/png;base64,${b64}`;
-                            }
-                            setQrImageSrc(b64);
+                switch (tool) {
+                    case 'password-gen':
+                        output = handlePasswordGen();
+                        break;
+                    case 'password-check':
+                        output = handlePasswordCheck(inputValue);
+                        break;
+                    case 'url-encode':
+                        output = handleUrlEncodeDecode('url-encode', inputValue);
+                        break;
+                    case 'url-decode':
+                        output = handleUrlEncodeDecode('url-decode', inputValue);
+                        break;
+                    case 'base64-encode':
+                        output = handleBase64('encode', inputValue);
+                        break;
+                    case 'base64-decode':
+                        output = handleBase64('decode', inputValue);
+                        break;
+                    case 'myip':
+                         output = await handleMyIp();
+                         break;
+                    case 'qr-gen':
+                        output = handleQrCodeGen(inputValue);
+                        if (output[1] && output[1].startsWith('data:image')) {
+                            setQrImageSrc(output[1]);
                             setOutputType('image');
-                            output = ['Base64 string decoded to image.'];
-                            break;
-                        case 'url-shorten':
-                            output = await handleUrlShorten(inputValue);
-                            break;
-                        case 'ip-to-binary':
-                            output = handleIpToBinary(inputValue);
-                            break;
-                        case 'markdown-to-json':
-                            output = handleMarkdownToJson(inputValue);
-                            break;
-                        case 'hex-to-rgb':
-                            output = handleHexToRgb(inputValue);
-                            break;
-                        case 'rgb-to-hex':
-                            output = handleRgbToHex(inputValue);
-                            break;
-                        case 'validate-email':
-                            output = handleValidateEmail(inputValue);
-                            break;
-                        case 'validate-credit-card':
-                            output = handleValidateCreditCard(inputValue);
-                            break;
-                        case 'user-agent':
-                            output = handleUserAgent();
-                            break;
-                        default:
-                            output = ['Please select a tool.'];
-                            break;
-                    }
-                    setGuiOutput(output);
-                };
-                
-                const showInputField = !['password-gen', 'myip', 'user-agent'].includes(tool);
+                            output = [output[0]]; // Keep only the text message for display
+                        }
+                        break;
+                    case 'qr-decode':
+                        output = await handleQrCodeDecode(inputValue);
+                        break;
+                    case 'unit-converter':
+                        const parts = inputValue.split(/\s+/);
+                        if (parts.length === 4 && parts[2].toLowerCase() === 'to') {
+                            value = parseFloat(parts[0]);
+                            fromUnit = parts[1];
+                            toUnit = parts[3];
+                            output = handleUnitConverter(value, fromUnit, toUnit);
+                        } else {
+                            output = [strings.invalidUnit];
+                        }
+                        break;
+                    case 'rev-dns':
+                        output = await handleRevDnsLookup(inputValue);
+                        break;
+                    case 'image-to-grayscale':
+                        output = await handleImageToGrayscale(inputValue);
+                        if (output[1] && output[1].startsWith('data:image')) {
+                            setQrImageSrc(output[1]);
+                            setOutputType('image');
+                            output = [output[0]]; // Keep only the text message for display
+                        }
+                        break;
+                    case 'base64-to-image':
+                        let b64 = inputValue.trim();
+                        if (!b64.startsWith('data:image')) {
+                            b64 = `data:image/png;base64,${b64}`;
+                        }
+                        setQrImageSrc(b64);
+                        setOutputType('image');
+                        output = ['Base64 string decoded to image.'];
+                        break;
+                    case 'url-shorten':
+                        output = await handleUrlShorten(inputValue);
+                        break;
+                    case 'ip-to-binary':
+                        output = handleIpToBinary(inputValue);
+                        break;
+                    case 'markdown-to-json':
+                        output = handleMarkdownToJson(inputValue);
+                        break;
+                    case 'hex-to-rgb':
+                        output = handleHexToRgb(inputValue);
+                        break;
+                    case 'rgb-to-hex':
+                        output = handleRgbToHex(inputValue);
+                        break;
+                    case 'validate-email':
+                        output = handleValidateEmail(inputValue);
+                        break;
+                    case 'validate-credit-card':
+                        output = handleValidateCreditCard(inputValue);
+                        break;
+                    case 'user-agent':
+                        output = handleUserAgent();
+                        break;
+                    default:
+                        output = ['Please select a tool.'];
+                        break;
+                }
+                setGuiOutput(output);
+            };
 
-                return (
-                    <div className="flex flex-col items-center justify-center p-8 bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg">
-                        <div className="text-xl font-bold mb-6 text-green-400">{strings.guiTitle}</div>
-                        
-                        <div className="w-full mb-4">
-                            <label htmlFor="tool-select" className="block text-gray-400 mb-2">{strings.selectTool}</label>
-                            <select
-                                id="tool-select"
-                                className="gui-select"
-                                value={tool}
-                                onChange={(e) => {
-                                    setTool(e.target.value);
-                                    setInputValue('');
-                                    setGuiOutput([]);
-                                    setQrImageSrc('');
-                                }}
-                            >
-                                <optgroup label="Programming & Data">
-                                    <option value="password-gen">{strings.toolNames['password-gen']}</option>
-                                    <option value="password-check">{strings.toolNames['password-check']}</option>
-                                    <option value="url-encode">{strings.toolNames['url-encode']}</option>
-                                    <option value="url-decode">{strings.toolNames['url-decode']}</option>
-                                    <option value="base64-encode">{strings.toolNames['base64-encode']}</option>
-                                    <option value="base64-decode">{strings.toolNames['base64-decode']}</option>
-                                    <option value="unit-converter">{strings.toolNames['unit-converter']}</option>
-                                    <option value="markdown-to-json">{strings.toolNames['markdown-to-json']}</option>
-                                    <option value="hex-to-rgb">{strings.toolNames['hex-to-rgb']}</option>
-                                    <option value="rgb-to-hex">{strings.toolNames['rgb-to-hex']}</option>
-                                </optgroup>
-                                <optgroup label="Network & Security">
-                                    <option value="myip">{strings.toolNames['myip']}</option>
-                                    <option value="rev-dns">{strings.toolNames['rev-dns']}</option>
-                                    <option value="url-shorten">{strings.toolNames['url-shorten']}</option>
-                                    <option value="ip-to-binary">{strings.toolNames['ip-to-binary']}</option>
-                                    <option value="validate-email">{strings.toolNames['validate-email']}</option>
-                                    <option value="validate-credit-card">{strings.toolNames['validate-credit-card']}</option>
-                                </optgroup>
-                                <optgroup label="Image & Graphics">
-                                    <option value="qr-gen">{strings.toolNames['qr-gen']}</option>
-                                    <option value="qr-decode">{strings.toolNames['qr-decode']}</option>
-                                    <option value="image-to-grayscale">{strings.toolNames['image-to-grayscale']}</option>
-                                    <option value="base64-to-image">{strings.toolNames['base64-to-image']}</option>
-                                </optgroup>
-                                <optgroup label="System & Environment">
-                                    <option value="user-agent">{strings.toolNames['user-agent']}</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                        
-                        {showInputField && (
-                            <div className="w-full mb-4">
-                                <label htmlFor="input-field" className="block text-gray-400 mb-2">Input:</label>
-                                <input
-                                    id="input-field"
-                                    type="text"
-                                    className="gui-input"
-                                    value={inputValue}
-                                    onChange={(e) => setInputValue(e.target.value)}
-                                    placeholder={strings.inputPlaceholder}
-                                />
-                                {tool === 'unit-converter' && (
-                                    <p className="text-gray-500 text-xs mt-1">Format: '1024 B to KB'</p>
-                                )}
-                            </div>
-                        )}
-                        
-                        <button
-                            onClick={runTool}
-                            className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
-                        >
-                            {strings.run}
-                        </button>
-                        
-                        {guiOutput.length > 0 && (
-                            <div className="w-full mt-6 p-4 bg-gray-900 rounded-lg border border-gray-700">
-                                <h3 className="text-gray-400 mb-2 font-bold">{strings.output}</h3>
-                                {outputType === 'text' && (
-                                    <pre className="whitespace-pre-wrap terminal-font leading-tight text-green-400">
-                                        {guiOutput.map((line, index) => (
-                                            <div key={index}>{line}</div>
-                                        ))}
-                                    </pre>
-                                )}
-                                {outputType === 'image' && (
-                                    <div className="flex flex-col items-center">
-                                        <img src={qrImageSrc} alt="Generated output image" className="mx-auto mt-4 w-auto h-auto max-w-full border-4 border-gray-700" />
-                                        <pre className="whitespace-pre-wrap terminal-font leading-tight text-green-400 mt-4">
-                                            {guiOutput.map((line, index) => (
-                                                <div key={index}>{line}</div>
-                                            ))}
-                                        </pre>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        
-                        <button
-                            onClick={() => setIsGuiMode(false)}
-                            className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg mt-6 transition-colors duration-200"
-                        >
-                            {strings.returnToCli}
-                        </button>
-                    </div>
-                );
+            const getToolName = (id) => {
+                for (const group in toolOptions) {
+                    const tool = toolOptions[group].find(t => t.id === id);
+                    if (tool) return tool.name;
+                }
+                return id;
             };
 
             // Main render logic: chooses between Terminal and GUI
+            const showInputField = !['password-gen', 'myip', 'user-agent'].includes(tool);
+
             return (
-                <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-green-400 p-4 font-mono text-sm sm:text-base">
+                <div
+                    className="flex flex-col items-center justify-center min-h-screen p-4 font-mono text-sm sm:text-base bg-gray-900 text-green-400"
+                    style={{
+                        backgroundImage: `
+                            radial-gradient(circle at 1px 1px, rgba(55, 65, 81, 0.5) 1px, transparent 0),
+                            radial-gradient(circle at 1px 1px, rgba(55, 65, 81, 0.5) 1px, transparent 0)
+                        `,
+                        backgroundSize: '24px 24px',
+                        backgroundPosition: '0 0, 12px 12px'
+                    }}
+                >
                     {!isGuiMode ? (
                         <div
                             ref={terminalRef}
@@ -1212,7 +1178,122 @@
                             </pre>
                         </div>
                     ) : (
-                        renderGui()
+                        <div className="p-4 w-full max-w-5xl">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Top Title Section */}
+                                <div className="col-span-1 md:col-span-3 p-6 bg-black bg-opacity-80 rounded-xl border-4 border-gray-700 text-center">
+                                    <div className="text-2xl font-bold text-green-400">Codra GUI</div>
+                                    <div className="text-xs text-gray-500 mt-1">A collection of dev/sec tools</div>
+                                </div>
+
+                                {/* Tool Selection */}
+                                <div className="p-6 bg-black bg-opacity-80 rounded-xl border-4 border-gray-700 relative" ref={dropdownRef}>
+                                    <label htmlFor="tool-select" className="block text-gray-400 mb-2 terminal-font">Select a Tool:</label>
+                                    <button
+                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                        className="w-full text-left bg-black bg-opacity-80 border border-gray-700 text-green-400 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 flex justify-between items-center gui-select-button"
+                                    >
+                                        <span className="truncate">{getToolName(tool)}</span>
+                                        <svg
+                                            className={`w-4 h-4 ml-2 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </button>
+                                    {isDropdownOpen && (
+                                        <div className="absolute z-10 w-full mt-2 bg-black bg-opacity-90 rounded-lg shadow-xl max-h-60 overflow-y-auto ring-1 ring-gray-700 scrollbar-hide">
+                                            {Object.keys(toolOptions).map(group => (
+                                                <div key={group}>
+                                                    <div className="text-gray-500 text-xs px-4 py-2 uppercase font-bold sticky top-0 bg-black bg-opacity-90">{group}</div>
+                                                    {toolOptions[group].map(option => (
+                                                        <div
+                                                            key={option.id}
+                                                            onClick={() => {
+                                                                setTool(option.id);
+                                                                setInputValue('');
+                                                                setGuiOutput([]);
+                                                                setQrImageSrc('');
+                                                                setIsDropdownOpen(false);
+                                                            }}
+                                                            className="text-green-400 terminal-font px-4 py-2 cursor-pointer hover:bg-gray-800 transition-colors duration-150"
+                                                        >
+                                                            {option.name}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+
+                                {/* Input Field Section (Conditional) */}
+                                {showInputField && (
+                                    <div className="p-6 bg-black bg-opacity-80 rounded-xl border-4 border-gray-700 col-span-1">
+                                        <label htmlFor="input-field" className="block text-gray-400 mb-2 terminal-font">Input:</label>
+                                        <input
+                                            id="input-field"
+                                            type="text"
+                                            className="gui-input terminal-font"
+                                            value={inputValue}
+                                            onChange={(e) => setInputValue(e.target.value)}
+                                            placeholder={strings.inputPlaceholder}
+                                        />
+                                        {tool === 'unit-converter' && (
+                                            <p className="text-gray-500 text-xs mt-1">Format: '1024 B to KB'</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Run Button Section */}
+                                <div className="p-6 bg-black bg-opacity-80 rounded-xl border-4 border-gray-700 col-span-1 md:col-span-1 flex items-center justify-center">
+                                    <button
+                                        onClick={runTool}
+                                        className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 w-full"
+                                    >
+                                        {strings.run}
+                                    </button>
+                                </div>
+
+                                {/* Output Section */}
+                                {guiOutput.length > 0 && (
+                                    <div className="p-6 bg-black bg-opacity-80 rounded-xl border-4 border-gray-700 col-span-1 md:col-span-2 row-span-2">
+                                        <h3 className="text-gray-400 mb-2 font-bold terminal-font">{strings.output}</h3>
+                                        {outputType === 'text' && (
+                                            <pre className="whitespace-pre-wrap terminal-font leading-tight text-green-400">
+                                                {guiOutput.map((line, index) => (
+                                                    <div key={index}>{line}</div>
+                                                ))}
+                                            </pre>
+                                        )}
+                                        {outputType === 'image' && (
+                                            <div className="flex flex-col items-center">
+                                                <img src={qrImageSrc} alt="Generated output image" className="mx-auto mt-4 w-auto h-auto max-w-full border-4 border-gray-700 rounded-lg" />
+                                                <pre className="whitespace-pre-wrap terminal-font leading-tight text-green-400 mt-4">
+                                                    {guiOutput.map((line, index) => (
+                                                        <div key={index}>{line}</div>
+                                                    ))}
+                                                </pre>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Return Button Section */}
+                                <div className="p-6 bg-black bg-opacity-80 rounded-xl border-4 border-gray-700 col-span-1 md:col-span-1 flex items-center justify-center">
+                                    <button
+                                        onClick={() => setIsGuiMode(false)}
+                                        className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 w-full"
+                                    >
+                                        {strings.returnToCli}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     )}
                 </div>
             );
