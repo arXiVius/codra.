@@ -1,0 +1,2016 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+// Main component that renders the terminal or GUI based on state
+export default function App() {
+  // State for all lines of text in the terminal, loaded from local storage
+  const [terminalOutput, setTerminalOutput] = useState([]);
+  // State for the current text being typed by the user
+  const [currentInput, setCurrentInput] = useState('');
+  // State to track if a command is currently being processed
+  const [isProcessing, setIsProcessing] = useState(false);
+  // State to toggle between terminal and GUI mode
+  const [isGuiMode, setIsGuiMode] = useState(false);
+  // Ref for auto-scrolling the terminal view
+  const terminalRef = useRef(null);
+
+  // Define ASCII art for the main header and a welcome message
+  const asciiHeader = [
+    '                                                                     ',
+    ' ##################################################################  ',
+    ' ##                                                              ##  ',
+    ' ##               _   _   _   _   _   _   _   _   _              ##  ',
+    ' ##              / \\ / \\ / \\ / \\ / \\ / \\ / \\ / \\ / \\             ##  ',
+    ' ##             ( C | O | D | R | A | . | C | L | I )            ##  ',
+    ' ##              \\_/ \\_/ \\_/ \\_/ \\_/ \\_/ \\_/ \\_/ \\_/             ##',
+    ' ##                                                              ##  ',
+    ' ##                 (●´Д｀●)      (●´Д｀●)      (●´Д｀●)         ##  ',
+    ' ##                                                              ##  ',
+    ' ##################################################################  ',
+    '                                                                     '
+  ];
+
+  const welcomeMessage = [
+    'Welcome to Codra., your comprehensive dev/sec toolkit.',
+    'Type `help` to see a list of available commands.',
+    'Type `gui` to switch to a graphical interface.',
+    ''
+  ];
+
+  // Load terminal history from local storage on initial render
+  useEffect(() => {
+    const savedOutput = localStorage.getItem('terminalOutput');
+    if (savedOutput) {
+      setTerminalOutput(JSON.parse(savedOutput));
+    } else {
+      setTerminalOutput([...asciiHeader, ...welcomeMessage]);
+    }
+  }, []);
+
+  // Save terminal history to local storage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('terminalOutput', JSON.stringify(terminalOutput));
+    } catch (e) {
+      console.error("Could not save to local storage: ", e);
+    }
+  }, [terminalOutput]);
+
+  // Scrolls the terminal view to the bottom whenever output is added
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [terminalOutput]);
+
+  /**
+   * Processes the command entered by the user.
+   * @param {string} command The command string to process.
+   */
+  const handleCommand = async (command) => {
+    setIsProcessing(true);
+    const args = command.trim().split(/\s+/);
+    const cmd = args[0].toLowerCase();
+
+    // Add the user's command to the terminal history
+    setTerminalOutput(prev => [...prev, `> ${command}`, '']);
+
+    let output = [];
+
+    switch (cmd) {
+      case 'help':
+        output = [
+          'Available Commands:',
+          '-------------------',
+          '• clear                  - Clears the terminal screen for a fresh start.',
+          '• clear-history          - Permanently clears all saved terminal history.',
+          '• help                   - Displays this help message.',
+          '• gui                    - Toggles to a simple graphical interface.',
+          '',
+          'Programming & Data Tools:',
+          '• hash <text>            - Generates a SHA-256 hash for text.',
+          '• base64 <action> <text> - Encodes or decodes Base64 text. Actions: encode, decode',
+          '• base64-url <action> <text> - Encodes or decodes URL-safe Base64. Actions: encode, decode',
+          '• url-parse <url>        - Parses a URL into its components.',
+          '• url-encode <text>      - URL-encodes a string.',
+          '• url-decode <text>      - URL-decodes a string.',
+          '• json-format <json>     - Formats a JSON string with indentation.',
+          '• string-reverse <text>  - Reverses a given string.',
+          '• string-count <text>    - Counts characters, words, and lines.',
+          '• string-replace <old> <new> <text> - Replaces all occurrences of a string.',
+          '• string-trim <text>     - Removes leading and trailing whitespace.',
+          '• case-convert <case> <text> - Converts text case. Cases: upper, lower, title, camel, snake, kebab',
+          '• rot13 <text>           - Encodes text using the ROT13 cipher.',
+          '• bin-to-dec <binary>    - Converts a binary string to a decimal number.',
+          '• dec-to-bin <decimal>   - Converts a decimal number to a binary string.',
+          '• hex-to-dec <hex>       - Converts a hexadecimal string to a decimal number.',
+          '• dec-to-hex <decimal>   - Converts a decimal number to a hexadecimal string.',
+          '• hex-to-rgb <hex>       - Converts a hexadecimal color to an RGB value.',
+          '• rgb-to-hex <r> <g> <b> - Converts an RGB color to a hexadecimal value.',
+          '• data-uri <mime> <text> - Converts text to a base64 Data URI.',
+          '• uuid                   - Generates a Version 4 UUID.',
+          '• timestamp-to-date <ts> - Converts a Unix timestamp to a human date.',
+          '• epoch                  - Gets the current Unix timestamp and date.',
+          '• markdown-to-html <md>  - Converts basic Markdown to HTML.',
+          '• json-to-yaml <json>    - Converts JSON to YAML.',
+          '• yaml-to-json <yaml>    - Converts YAML to JSON.',
+          '• css-minify <css>       - Removes whitespace and comments from CSS.',
+          '• css-format <css>       - Formats CSS with proper indentation.',
+          '• jwt-decode <token>     - Decodes a JSON Web Token.',
+          '• regex-test <pattern> <text> - Tests a regex pattern against a string.',
+          '• palette-gen            - Generates a random color palette.',
+          '',
+          'Network & Security Tools:',
+          '• ip <address>           - Finds geolocation data for an IP address.',
+          '• myip                   - Finds your public IP address.',
+          '• dns-lookup <domain>    - Performs a DNS lookup for a domain.',
+          '• port-check <ip> <port> - Tries to connect to a port (limited by browser).',
+          '• password-check <pass>  - Checks the strength of a password.',
+          '• password-gen           - Generates a strong random password.',
+          '• ip-range <start_ip> <count> - Generates a range of IP addresses.',
+          '• cidr-to-range <cidr>   - Converts a CIDR block to an IP address range.',
+          ''
+        ];
+        break;
+
+      case 'gui':
+        setIsGuiMode(true);
+        output = ['Switched to GUI mode. Type `exit` to return to the terminal.'];
+        break;
+
+      case 'clear':
+        setTerminalOutput([]);
+        setIsProcessing(false);
+        return;
+
+      case 'clear-history':
+        localStorage.removeItem('terminalOutput');
+        setTerminalOutput(['Terminal history cleared. Your session will not be saved on reload.']);
+        setIsProcessing(false);
+        return;
+
+      case 'ip':
+        if (args.length < 2) {
+          output = ['Error: Missing IP address. Usage: ip <address>'];
+        } else {
+          output = await handleIpLookup(args[1]);
+        }
+        break;
+
+      case 'myip':
+        output = await handleMyIp();
+        break;
+
+      case 'dns-lookup':
+        if (args.length < 2) {
+          output = ['Error: Missing domain. Usage: dns-lookup <domain>'];
+        } else {
+          output = await handleDnsLookup(args[1]);
+        }
+        break;
+
+      case 'port-check':
+        if (args.length < 3) {
+          output = ['Error: Missing arguments. Usage: port-check <ip> <port>'];
+        } else {
+          output = await handlePortCheck(args[1], args[2]);
+        }
+        break;
+
+      case 'hash':
+        if (args.length < 2) {
+          output = ['Error: Missing text. Usage: hash "<text>"'];
+        } else {
+          // Join the rest of the arguments to handle multi-word text
+          const textToHash = args.slice(1).join(' ');
+          output = await handleTextHash(textToHash);
+        }
+        break;
+
+      case 'base64':
+        if (args.length < 3) {
+          output = ['Error: Missing arguments. Usage: base64 <encode|decode> <text>'];
+        } else {
+          output = handleBase64(args[1], args.slice(2).join(' '));
+        }
+        break;
+
+      case 'base64-url':
+        if (args.length < 3) {
+          output = ['Error: Missing arguments. Usage: base64-url <encode|decode> <text>'];
+        } else {
+          output = handleBase64Url(args[1], args.slice(2).join(' '));
+        }
+        break;
+
+      case 'url-encode':
+      case 'url-decode':
+        if (args.length < 2) {
+          output = [`Error: Missing text. Usage: ${cmd} <text>`];
+        } else {
+          output = handleUrlEncodeDecode(cmd, args.slice(1).join(' '));
+        }
+        break;
+
+      case 'url-parse':
+        if (args.length < 2) {
+          output = ['Error: Missing URL. Usage: url-parse <url>'];
+        } else {
+          output = handleUrlParse(args[1]);
+        }
+        break;
+
+      case 'json-format':
+        if (args.length < 2) {
+          output = ['Error: Missing JSON string. Usage: json-format \'<json>\''];
+        } else {
+          output = handleJsonFormat(args.slice(1).join(' '));
+        }
+        break;
+
+      case 'string-reverse':
+        if (args.length < 2) {
+          output = ['Error: Missing text. Usage: string-reverse <text>'];
+        } else {
+          output = handleStringReverse(args.slice(1).join(' '));
+        }
+        break;
+
+      case 'string-count':
+        if (args.length < 2) {
+          output = ['Error: Missing text. Usage: string-count <text>'];
+        } else {
+          output = handleStringCount(args.slice(1).join(' '));
+        }
+        break;
+
+      case 'string-replace':
+        if (args.length < 4) {
+          output = ['Error: Missing arguments. Usage: string-replace <old> <new> <text>'];
+        } else {
+          output = handleStringReplace(args[1], args[2], args.slice(3).join(' '));
+        }
+        break;
+
+      case 'string-trim':
+        if (args.length < 2) {
+          output = ['Error: Missing text. Usage: string-trim <text>'];
+        } else {
+          output = handleStringTrim(args.slice(1).join(' '));
+        }
+        break;
+
+      case 'case-convert':
+        if (args.length < 3) {
+          output = ['Error: Missing arguments. Usage: case-convert <case> <text>'];
+        } else {
+          output = handleCaseConvert(args[1], args.slice(2).join(' '));
+        }
+        break;
+
+      case 'rot13':
+        if (args.length < 2) {
+          output = ['Error: Missing text. Usage: rot13 <text>'];
+        } else {
+          output = handleRot13(args.slice(1).join(' '));
+        }
+        break;
+
+      case 'bin-to-dec':
+      case 'dec-to-bin':
+        if (args.length < 2) {
+          output = [`Error: Missing value. Usage: ${cmd} <value>`];
+        } else {
+          output = handleBaseConversion(cmd, args[1]);
+        }
+        break;
+
+      case 'hex-to-dec':
+      case 'dec-to-hex':
+        if (args.length < 2) {
+          output = [`Error: Missing value. Usage: ${cmd} <value>`];
+        } else {
+          output = handleHexDecConversion(cmd, args[1]);
+        }
+        break;
+
+      case 'hex-to-rgb':
+        if (args.length < 2) {
+          output = [`Error: Missing hex code. Usage: hex-to-rgb <hex_code>`];
+        } else {
+          output = handleHexRgbConversion(args[1]);
+        }
+        break;
+
+      case 'rgb-to-hex':
+        if (args.length < 4) {
+          output = [`Error: Missing RGB values. Usage: rgb-to-hex <r> <g> <b>`];
+        } else {
+          output = handleRgbHexConversion(args[1], args[2], args[3]);
+        }
+        break;
+
+      case 'data-uri':
+        if (args.length < 3) {
+          output = [`Error: Missing arguments. Usage: data-uri <mime_type> <text>`];
+        } else {
+          output = handleDataUriGen(args[1], args.slice(2).join(' '));
+        }
+        break;
+
+      case 'uuid':
+        output = handleUuidGen();
+        break;
+
+      case 'epoch':
+        output = handleEpochTime();
+        break;
+
+      case 'password-check':
+        if (args.length < 2) {
+          output = ['Error: Missing password. Usage: password-check <password>'];
+        } else {
+          output = handlePasswordCheck(args.slice(1).join(' '));
+        }
+        break;
+
+      case 'password-gen':
+        output = handlePasswordGen();
+        break;
+
+      case 'timestamp-to-date':
+        if (args.length < 2) {
+          output = ['Error: Missing timestamp. Usage: timestamp-to-date <timestamp>'];
+        } else {
+          output = handleTimestampToDate(args[1]);
+        }
+        break;
+
+      case 'markdown-to-html':
+        if (args.length < 2) {
+          output = ['Error: Missing Markdown. Usage: markdown-to-html \'<markdown>\''];
+        } else {
+          output = handleMarkdownToHtml(args.slice(1).join(' '));
+        }
+        break;
+
+      case 'json-to-yaml':
+        if (args.length < 2) {
+          output = ['Error: Missing JSON string. Usage: json-to-yaml \'<json>\''];
+        } else {
+          output = handleJsonToYaml(args.slice(1).join(' '));
+        }
+        break;
+
+      case 'yaml-to-json':
+        if (args.length < 2) {
+          output = ['Error: Missing YAML string. Usage: yaml-to-json \'<yaml>\''];
+        } else {
+          output = handleYamlToJson(args.slice(1).join(' '));
+        }
+        break;
+      
+      case 'css-minify':
+        if (args.length < 2) {
+          output = ['Error: Missing CSS string. Usage: css-minify \'<css>\''];
+        } else {
+          output = handleCssMinify(args.slice(1).join(' '));
+        }
+        break;
+
+      case 'css-format':
+        if (args.length < 2) {
+          output = ['Error: Missing CSS string. Usage: css-format \'<css>\''];
+        } else {
+          output = handleCssFormat(args.slice(1).join(' '));
+        }
+        break;
+
+      case 'jwt-decode':
+        if (args.length < 2) {
+          output = ['Error: Missing JWT. Usage: jwt-decode <token>'];
+        } else {
+          output = handleJwtDecode(args[1]);
+        }
+        break;
+      
+      case 'regex-test':
+        if (args.length < 3) {
+          output = ['Error: Missing arguments. Usage: regex-test <pattern> <text>'];
+        } else {
+          const pattern = args[1];
+          const text = args.slice(2).join(' ');
+          output = handleRegexTest(pattern, text);
+        }
+        break;
+
+      case 'palette-gen':
+        output = handlePaletteGen();
+        break;
+
+      case 'ip-range':
+        if (args.length < 3) {
+          output = ['Error: Missing arguments. Usage: ip-range <start_ip> <count>'];
+        } else {
+          output = handleIpRange(args[1], args[2]);
+        }
+        break;
+
+      case 'cidr-to-range':
+        if (args.length < 2) {
+          output = ['Error: Missing CIDR block. Usage: cidr-to-range <cidr_block>'];
+        } else {
+          output = handleCidrToRange(args[1]);
+        }
+        break;
+        
+      default:
+        output = [`Error: Command not found: ${command}`, 'Type `help` for a list of commands.'];
+        break;
+    }
+
+    // Append the command output to the terminal state
+    setTerminalOutput(prev => [...prev, ...output, '']);
+    setIsProcessing(false);
+  };
+
+  // Handlers for all the different commands
+
+  /**
+   * Handles the IP geolocation command.
+   * @param {string} ip The IP address to look up.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleIpLookup = async (ip) => {
+    try {
+      const response = await fetch(`https://api.ipify.org?format=json`);
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        return [
+          'IP Geolocation Results:',
+          '------------------------',
+          `IP:      ${data.query}`,
+          `Country: ${data.country} (${data.countryCode})`,
+          `Region:  ${data.regionName}`,
+          `City:    ${data.city}`,
+          `ISP:     ${data.isp}`,
+          `AS:      ${data.as}`
+        ];
+      } else {
+        return [`Error: ${data.message || 'Failed to fetch IP information.'}`];
+      }
+    } catch (e) {
+      return [`Error: Could not connect to API.`];
+    }
+  };
+
+  /**
+   * Handles the user's public IP address.
+   * @returns {string[]} An array of strings with the public IP.
+   */
+  const handleMyIp = async () => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      if (data.ip) {
+        return [`Your public IP address is: ${data.ip}`];
+      } else {
+        return [`Error: Could not retrieve public IP.`];
+      }
+    } catch (e) {
+      return [`Error: Could not connect to API.`];
+    }
+  };
+
+  /**
+   * Performs a simple DNS lookup.
+   * @param {string} domain The domain to lookup.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleDnsLookup = async (domain) => {
+    try {
+      const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${domain}&type=A`, {
+        headers: { 'accept': 'application/dns-json' }
+      });
+      const data = await response.json();
+
+      if (data.Answer && data.Answer.length > 0) {
+        const ips = data.Answer.map(ans => ` - ${ans.data}`);
+        return ['DNS A Record(s):', '------------------', ...ips];
+      } else {
+        return ['No A records found or invalid domain.'];
+      }
+    } catch (e) {
+      return ['Error: DNS lookup failed.'];
+    }
+  };
+
+  /**
+   * Tries to check if a port is open. This is very limited due to browser security.
+   * @param {string} ip The IP address.
+   * @param {string} port The port number.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handlePortCheck = async (ip, port) => {
+    return [
+      `Attempting to check port ${port} on ${ip}...`,
+      '---',
+      'Note: This is a browser-based check and is highly limited due to CORS policies. ' +
+      'It will only succeed if the server at that address/port has a lenient CORS policy.',
+      'A true port scan requires a dedicated backend service.'
+    ];
+  };
+
+  /**
+   * Handles the text hashing command.
+   * @param {string} text The text to hash.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleTextHash = async (text) => {
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text);
+
+      // Use Web Crypto API for hashing
+      const sha256Buffer = await crypto.subtle.digest('SHA-256', data);
+      const sha256Array = Array.from(new Uint8Array(sha256Buffer));
+      const sha256Hex = sha256Array.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      return [
+        `Hashing results for: "${text}"`,
+        '------------------------',
+        `SHA-256: ${sha256Hex}`
+      ];
+    } catch (e) {
+      return [`Error: Hashing failed. Invalid input or environment.`];
+    }
+  };
+
+  /**
+   * Handles Base64 encoding and decoding.
+   * @param {string} action 'encode' or 'decode'.
+   * @param {string} text The string to process.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleBase64 = (action, text) => {
+    try {
+      if (action.toLowerCase() === 'encode') {
+        const encoded = btoa(text);
+        return [`Encoded: ${encoded}`];
+      } else if (action.toLowerCase() === 'decode') {
+        const decoded = atob(text);
+        return [`Decoded: ${decoded}`];
+      } else {
+        return ['Error: Invalid action. Use `encode` or `decode`.'];
+      }
+    } catch (e) {
+      return [`Error: Invalid Base64 string or decoding failed.`];
+    }
+  };
+
+  /**
+   * Handles URL-safe Base64 encoding and decoding.
+   * @param {string} action 'encode' or 'decode'.
+   * @param {string} text The string to process.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleBase64Url = (action, text) => {
+    try {
+      if (action.toLowerCase() === 'encode') {
+        const encoded = btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        return [`Encoded: ${encoded}`];
+      } else if (action.toLowerCase() === 'decode') {
+        let decoded = text.replace(/-/g, '+').replace(/_/g, '/');
+        while (decoded.length % 4) decoded += '=';
+        decoded = atob(decoded);
+        return [`Decoded: ${decoded}`];
+      } else {
+        return ['Error: Invalid action. Use `encode` or `decode`.'];
+      }
+    } catch (e) {
+      return [`Error: Invalid URL-safe Base64 string or decoding failed.`];
+    }
+  };
+
+  /**
+   * Handles URL encoding and decoding.
+   * @param {string} action 'url-encode' or 'url-decode'.
+   * @param {string} text The string to process.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleUrlEncodeDecode = (action, text) => {
+    try {
+      if (action.toLowerCase() === 'url-encode') {
+        return [`Encoded: ${encodeURIComponent(text)}`];
+      } else if (action.toLowerCase() === 'url-decode') {
+        return [`Decoded: ${decodeURIComponent(text)}`];
+      }
+    } catch (e) {
+      return [`Error: Processing failed.`];
+    }
+  };
+
+  /**
+   * Parses a URL and prints its components.
+   * @param {string} url The URL string to parse.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleUrlParse = (url) => {
+    try {
+      const urlObj = new URL(url);
+      return [
+        `URL Components for: ${url}`,
+        '-------------------------',
+        `Protocol:  ${urlObj.protocol}`,
+        `Hostname:  ${urlObj.hostname}`,
+        `Port:      ${urlObj.port || '(none)'}`,
+        `Path:      ${urlObj.pathname}`,
+        `Query:     ${urlObj.search || '(none)'}`,
+        `Fragment:  ${urlObj.hash || '(none)'}`
+      ];
+    } catch (e) {
+      return [`Error: Invalid URL. Please provide a valid URL.`];
+    }
+  };
+
+  /**
+   * Formats a JSON string.
+   * @param {string} jsonString The JSON string to format.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleJsonFormat = (jsonString) => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      const formatted = JSON.stringify(parsed, null, 2);
+      return ['Formatted JSON:', formatted];
+    } catch (e) {
+      return [`Error: Invalid JSON format.`];
+    }
+  };
+
+  /**
+   * Reverses a given string.
+   * @param {string} text The text to reverse.
+   * @returns {string[]} The reversed string.
+   */
+  const handleStringReverse = (text) => {
+    return [`Reversed: ${text.split('').reverse().join('')}`];
+  };
+
+  /**
+   * Removes leading and trailing whitespace from a string.
+   * @param {string} text The text to trim.
+   * @returns {string[]} The trimmed string.
+   */
+  const handleStringTrim = (text) => {
+    return [`Trimmed: "${text.trim()}"`];
+  };
+
+  /**
+   * Counts characters, words, and lines.
+   * @param {string} text The text to count.
+   * @returns {string[]} An array of strings with counts.
+   */
+  const handleStringCount = (text) => {
+    const charCount = text.length;
+    const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
+    const lineCount = text.split(/\n/).length;
+    return [
+      'String Count:',
+      '--------------',
+      `Characters: ${charCount}`,
+      `Words:      ${wordCount}`,
+      `Lines:      ${lineCount}`
+    ];
+  };
+
+  /**
+   * Replaces all occurrences of a substring.
+   * @param {string} oldText The substring to find.
+   * @param {string} newText The replacement text.
+   * @param {string} sourceText The original string.
+   * @returns {string[]} The string with replacements.
+   */
+  const handleStringReplace = (oldText, newText, sourceText) => {
+    try {
+      const replaced = sourceText.replaceAll(oldText, newText);
+      return [`Replaced: ${replaced}`];
+    } catch (e) {
+      return ['Error: String replacement failed.'];
+    }
+  };
+
+  /**
+   * Converts a string to a different case.
+   * @param {string} caseType 'upper', 'lower', 'title', 'camel', 'snake', or 'kebab'.
+   * @param {string} text The string to convert.
+   * @returns {string[]} The converted string.
+   */
+  const handleCaseConvert = (caseType, text) => {
+    const toCamelCase = (s) => s.toLowerCase().replace(/[^a-zA-Z0-9]+(.)?/g, (m, chr) => chr ? chr.toUpperCase() : '').replace(/(\s)/g, '');
+    const toSnakeCase = (s) => s.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1_$2').toLowerCase();
+    const toKebabCase = (s) => s.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase();
+
+    switch(caseType.toLowerCase()) {
+      case 'upper':
+        return [`Result: ${text.toUpperCase()}`];
+      case 'lower':
+        return [`Result: ${text.toLowerCase()}`];
+      case 'title':
+        const titleCase = text.toLowerCase().split(' ').map(word => {
+          return word.charAt(0).toUpperCase() + word.slice(1);
+        }).join(' ');
+        return [`Result: ${titleCase}`];
+      case 'camel':
+        return [`Result: ${toCamelCase(text)}`];
+      case 'snake':
+        return [`Result: ${toSnakeCase(text)}`];
+      case 'kebab':
+        return [`Result: ${toKebabCase(text)}`];
+      default:
+        return [`Error: Invalid case type. Use 'upper', 'lower', 'title', 'camel', 'snake', or 'kebab'.`];
+    }
+  };
+
+  /**
+   * Encodes text using the ROT13 cipher.
+   * @param {string} text The text to encode.
+   * @returns {string[]} The encoded text.
+   */
+  const handleRot13 = (text) => {
+    const encoded = text.replace(/[a-zA-Z]/g, (c) => {
+      const start = c <= 'Z' ? 'A'.charCodeAt(0) : 'a'.charCodeAt(0);
+      return String.fromCharCode(start + (c.charCodeAt(0) - start + 13) % 26);
+    });
+    return [`ROT13: ${encoded}`];
+  };
+
+  /**
+   * Handles binary to decimal and decimal to binary conversions.
+   * @param {string} action 'bin-to-dec' or 'dec-to-bin'.
+   * @param {string} value The value to convert.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleBaseConversion = (action, value) => {
+    try {
+      if (action === 'bin-to-dec') {
+        if (!/^[01]+$/.test(value)) {
+          return ['Error: Invalid binary string.'];
+        }
+        return [`Decimal: ${parseInt(value, 2)}`];
+      } else if (action === 'dec-to-bin') {
+        const dec = parseInt(value, 10);
+        if (isNaN(dec)) {
+          return ['Error: Invalid decimal number.'];
+        }
+        return [`Binary: ${dec.toString(2)}`];
+      }
+    } catch (e) {
+      return [`Error: Conversion failed.`];
+    }
+  };
+
+  /**
+   * Handles hexadecimal to decimal and decimal to hexadecimal conversions.
+   * @param {string} action 'hex-to-dec' or 'dec-to-hex'.
+   * @param {string} value The value to convert.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleHexDecConversion = (action, value) => {
+    try {
+      if (action === 'hex-to-dec') {
+        if (!/^[0-9a-fA-F]+$/.test(value)) {
+          return ['Error: Invalid hex string.'];
+        }
+        return [`Decimal: ${parseInt(value, 16)}`];
+      } else if (action === 'dec-to-hex') {
+        const dec = parseInt(value, 10);
+        if (isNaN(dec)) {
+          return ['Error: Invalid decimal number.'];
+        }
+        return [`Hexadecimal: #${dec.toString(16).toUpperCase()}`];
+      }
+    } catch (e) {
+      return [`Error: Conversion failed.`];
+    }
+  };
+
+  /**
+   * Converts a hexadecimal color to an RGB value.
+   * @param {string} hex The hex color code (e.g., #FFFFFF).
+   * @returns {string[]} An array of strings with the RGB value.
+   */
+  const handleHexRgbConversion = (hex) => {
+    const sanitisedHex = hex.startsWith('#') ? hex.slice(1) : hex;
+    if (!/^[0-9a-fA-F]{6}$/.test(sanitisedHex)) {
+      return [`Error: Invalid hex color format. Use a 6-digit hex code.`];
+    }
+    const r = parseInt(sanitisedHex.substring(0, 2), 16);
+    const g = parseInt(sanitisedHex.substring(2, 4), 16);
+    const b = parseInt(sanitisedHex.substring(4, 6), 16);
+    return [`RGB: rgb(${r}, ${g}, ${b})`];
+  };
+
+  /**
+   * Converts an RGB color to a hexadecimal value.
+   * @param {string} r Red value.
+   * @param {string} g Green value.
+   * @param {string} b Blue value.
+   * @returns {string[]} An array of strings with the hex value.
+   */
+  const handleRgbHexConversion = (r, g, b) => {
+    const rInt = parseInt(r, 10);
+    const gInt = parseInt(g, 10);
+    const bInt = parseInt(b, 10);
+    if (isNaN(rInt) || isNaN(gInt) || isNaN(bInt) || rInt < 0 || rInt > 255 || gInt < 0 || gInt > 255 || bInt < 0 || bInt > 255) {
+      return [`Error: Invalid RGB values. Values must be between 0 and 255.`];
+    }
+    const hex = ((1 << 24) + (rInt << 16) + (gInt << 8) + bInt).toString(16).slice(1).toUpperCase();
+    return [`Hex: #${hex}`];
+  };
+
+  /**
+   * Converts text to a Base64 Data URI.
+   * @param {string} mimeType The MIME type of the data (e.g., text/plain).
+   * @param {string} text The text to encode.
+   * @returns {string[]} An array with the Data URI.
+   */
+  const handleDataUriGen = (mimeType, text) => {
+    const encodedText = btoa(text);
+    return [`Data URI: data:${mimeType};base64,${encodedText}`];
+  };
+
+  /**
+   * Generates a Version 4 UUID.
+   * @returns {string[]} An array containing the UUID string.
+   */
+  const handleUuidGen = () => {
+    return [
+      `Generated UUID: ${crypto.randomUUID()}`
+    ];
+  };
+
+  /**
+   * Converts a given epoch timestamp to a readable date.
+   * If no timestamp is given, it uses the current time.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleEpochTime = () => {
+    const epochNow = Math.floor(Date.now() / 1000); // Convert to seconds
+    const date = new Date(epochNow * 1000); // Convert seconds to milliseconds for display
+    return [
+      `Current Epoch Time (s): ${epochNow}`,
+      `Human-Readable Date: ${date.toUTCString()}`
+    ];
+  };
+
+  /**
+   * Checks the strength of a password.
+   * @param {string} password The password to check.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handlePasswordCheck = (password) => {
+    let score = 0;
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      specialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+
+    if (checks.length) score += 20;
+    if (checks.uppercase) score += 20;
+    if (checks.lowercase) score += 20;
+    if (checks.number) score += 20;
+    if (checks.specialChar) score += 20;
+
+    let strength = 'Very Weak';
+    if (score >= 80) strength = 'Very Strong';
+    else if (score >= 60) strength = 'Strong';
+    else if (score >= 40) strength = 'Moderate';
+    else if (score >= 20) strength = 'Weak';
+
+    const feedback = Object.entries(checks).map(([key, value]) =>
+      `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value ? '✅ Met' : '❌ Not Met'}`
+    );
+
+    return [
+      `Password Strength Check: "${password}"`,
+      '--------------------------------',
+      `Overall Strength: ${strength} (${score}/100)`,
+      'Breakdown:',
+      ...feedback
+    ];
+  };
+
+  /**
+   * Generates a strong, random password.
+   * @returns {string[]} An array with the generated password.
+   */
+  const handlePasswordGen = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:",.<>/?';
+    let password = '';
+    const length = 16;
+    for (let i = 0; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * chars.length);
+        password += chars[randomIndex];
+    }
+    return [`Generated Password: ${password}`];
+  };
+
+  /**
+   * Converts a Unix timestamp to a human-readable date.
+   * @param {string} timestamp The Unix timestamp string.
+   * @returns {string[]} An array of strings representing the output.
+   */
+  const handleTimestampToDate = (timestamp) => {
+    const ts = parseInt(timestamp, 10);
+    if (isNaN(ts)) {
+      return ['Error: Invalid timestamp. Please provide a number.'];
+    }
+    const date = new Date(ts * 1000); // Convert seconds to milliseconds
+    return [`Timestamp: ${timestamp}`, `Human-Readable Date: ${date.toUTCString()}`];
+  };
+
+  /**
+   * Converts basic Markdown to HTML.
+   * @param {string} markdown The Markdown string.
+   * @returns {string[]} An array containing the HTML output.
+   */
+  const handleMarkdownToHtml = (markdown) => {
+    let html = markdown;
+    // Simple replacements for basic markdown
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+
+    return [
+      'HTML Output:',
+      '-------------',
+      html
+    ];
+  };
+
+  /**
+   * Converts JSON to a basic YAML string.
+   * This is a simple implementation and may not handle all edge cases.
+   * @param {string} jsonString The JSON string.
+   * @returns {string[]} An array with the YAML output.
+   */
+  const handleJsonToYaml = (jsonString) => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      const toYaml = (obj, indent = 0) => {
+        let yaml = '';
+        const spaces = '  '.repeat(indent);
+        for (const key in obj) {
+          if (typeof obj[key] === 'object' && obj[key] !== null) {
+            yaml += `${spaces}${key}:\n${toYaml(obj[key], indent + 1)}`;
+          } else {
+            const value = obj[key] === null ? 'null' : (typeof obj[key] === 'string' ? `'${obj[key]}'` : obj[key]);
+            yaml += `${spaces}${key}: ${value}\n`;
+          }
+        }
+        return yaml;
+      };
+      return ['YAML Output:', '------------', toYaml(parsed)];
+    } catch (e) {
+      return [`Error: Invalid JSON format.`];
+    }
+  };
+
+  /**
+   * Converts a basic YAML string to JSON.
+   * This is a simple implementation and may not handle all edge cases.
+   * @param {string} yamlString The YAML string.
+   * @returns {string[]} An array with the JSON output.
+   */
+  const handleYamlToJson = (yamlString) => {
+    const lines = yamlString.split('\n').filter(line => line.trim() && !line.trim().startsWith('#'));
+    let json = {};
+    const stack = [json];
+    const indentStack = [-1];
+
+    lines.forEach(line => {
+        const indent = line.match(/^(\s*)/)[0].length / 2;
+        const [key, ...valueParts] = line.trim().split(':');
+        const value = valueParts.join(':').trim();
+
+        while (indent <= indentStack[indentStack.length - 1]) {
+            stack.pop();
+            indentStack.pop();
+        }
+
+        const currentParent = stack[stack.length - 1];
+        if (value) {
+            try {
+                currentParent[key] = JSON.parse(value);
+            } catch (e) {
+                currentParent[key] = value.replace(/^'(.*)'$/, '$1').replace(/^"(.*)"$/, '$1');
+            }
+        } else {
+            currentParent[key] = {};
+            stack.push(currentParent[key]);
+            indentStack.push(indent);
+        }
+    });
+
+    try {
+      const formatted = JSON.stringify(json, null, 2);
+      return ['JSON Output:', '-------------', formatted];
+    } catch (e) {
+      return ['Error: Invalid YAML format.'];
+    }
+  };
+
+  /**
+   * Minifies CSS by removing comments and extra whitespace.
+   * @param {string} css The CSS string.
+   * @returns {string[]} An array with the minified CSS.
+   */
+  const handleCssMinify = (css) => {
+    try {
+      let minified = css.replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
+      minified = minified.replace(/\s*([,;:{}\/])\s*/g, '$1'); // Remove spaces around special chars
+      minified = minified.replace(/\s+/g, ' ').trim(); // Replace multiple spaces with one and trim
+      return ['Minified CSS:', '-------------', minified];
+    } catch (e) {
+      return [`Error: CSS minification failed.`];
+    }
+  };
+
+  /**
+   * Formats CSS with proper indentation.
+   * @param {string} css The CSS string.
+   * @returns {string[]} An array with the formatted CSS.
+   */
+  const handleCssFormat = (css) => {
+    try {
+      const formatted = css
+        .replace(/\s*;\s*/g, ';\n')
+        .replace(/\s*{\s*/g, ' {\n  ')
+        .replace(/\s*}\s*/g, '\n}\n\n')
+        .replace(/;/g, ';\n  ')
+        .replace(/{/g, '{\n  ')
+        .replace(/}/g, '\n}\n')
+        .replace(/:\s*/g, ': ')
+        .replace(/\n\s*\n/g, '\n');
+      return ['Formatted CSS:', '-------------', formatted.trim()];
+    } catch (e) {
+      return [`Error: CSS formatting failed.`];
+    }
+  };
+
+  /**
+   * Decodes a JWT and extracts header and payload.
+   * Note: This does not validate the signature.
+   * @param {string} token The JWT string.
+   * @returns {string[]} An array with the decoded information.
+   */
+  const handleJwtDecode = (token) => {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        return ['Error: Invalid JWT format. A JWT must have three parts.'];
+      }
+      const header = JSON.parse(atob(parts[0]));
+      const payload = JSON.parse(atob(parts[1]));
+      return [
+        'JWT Decoded:',
+        '------------',
+        'Header:',
+        JSON.stringify(header, null, 2),
+        '',
+        'Payload:',
+        JSON.stringify(payload, null, 2),
+      ];
+    } catch (e) {
+      return [`Error: Decoding failed. Is this a valid Base64 URL-safe string?`];
+    }
+  };
+
+  /**
+   * Tests a regex pattern against a string.
+   * @param {string} pattern The regex pattern string.
+   * @param {string} text The text to test against.
+   * @returns {string[]} An array with the test results.
+   */
+  const handleRegexTest = (pattern, text) => {
+    try {
+      const regex = new RegExp(pattern, 'g');
+      const matches = [...text.matchAll(regex)];
+      if (matches.length > 0) {
+        return [
+          `Regex Test Results for pattern: /${pattern}/`,
+          '---------------------------------------',
+          `Found ${matches.length} match(es):`,
+          ...matches.map((match, index) => `Match ${index + 1}: ${match[0]}`),
+        ];
+      } else {
+        return [`No matches found for pattern: /${pattern}/`];
+      }
+    } catch (e) {
+      return [`Error: Invalid regex pattern.`];
+    }
+  };
+
+  /**
+   * Generates a random color palette.
+   * @returns {string[]} An array of strings with color codes.
+   */
+  const handlePaletteGen = () => {
+    const generateColor = () => {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    };
+    const palette = Array.from({ length: 5 }, () => generateColor());
+    return [
+      'Generated Color Palette:',
+      '------------------------',
+      ...palette
+    ];
+  };
+
+  /**
+   * Generates a range of IP addresses.
+   * @param {string} startIp The starting IP address.
+   * @param {string} countStr The number of IPs to generate.
+   * @returns {string[]} An array of strings with the IP list.
+   */
+  const handleIpRange = (startIp, countStr) => {
+    const count = parseInt(countStr, 10);
+    if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(startIp) || isNaN(count) || count < 1 || count > 256) {
+      return ['Error: Invalid IP address or count. Count must be between 1-256.'];
+    }
+
+    const ipList = [];
+    let ipParts = startIp.split('.').map(Number);
+
+    for (let i = 0; i < count; i++) {
+      ipList.push(ipParts.join('.'));
+      ipParts[3]++;
+      if (ipParts[3] > 255) {
+        ipParts[3] = 0;
+        ipParts[2]++;
+      }
+      if (ipParts[2] > 255) {
+        ipParts[2] = 0;
+        ipParts[1]++;
+      }
+      if (ipParts[1] > 255) {
+        ipParts[1] = 0;
+        ipParts[0]++;
+      }
+    }
+
+    return ['Generated IP Range:', '-------------------', ...ipList];
+  };
+
+  /**
+   * Converts a CIDR block to a range of IP addresses.
+   * @param {string} cidr The CIDR block (e.g., 192.168.1.0/24).
+   * @returns {string[]} An array of strings with the IP range.
+   */
+  const handleCidrToRange = (cidr) => {
+    try {
+      const [ip, subnetStr] = cidr.split('/');
+      const subnet = parseInt(subnetStr, 10);
+
+      if (isNaN(subnet) || subnet < 0 || subnet > 32) {
+        return ['Error: Invalid CIDR subnet. Must be between 0-32.'];
+      }
+
+      const ipParts = ip.split('.').map(Number);
+      if (ipParts.length !== 4 || ipParts.some(p => p < 0 || p > 255)) {
+        return ['Error: Invalid IP address.'];
+      }
+
+      const ipInt = ipParts.reduce((acc, part) => (acc << 8) + part, 0) >>> 0;
+      const mask = -1 << (32 - subnet);
+
+      const networkAddress = (ipInt & mask) >>> 0;
+      const broadcastAddress = (networkAddress | (~mask)) >>> 0;
+
+      const intToIp = (int) => {
+        return [
+          (int >>> 24) & 0xFF,
+          (int >>> 16) & 0xFF,
+          (int >>> 8) & 0xFF,
+          int & 0xFF
+        ].join('.');
+      };
+
+      const startIp = intToIp(networkAddress);
+      const endIp = intToIp(broadcastAddress);
+
+      return [
+        `CIDR Block: ${cidr}`,
+        '-------------------',
+        `Network Address: ${startIp}`,
+        `Broadcast Address: ${endIp}`
+      ];
+
+    } catch (e) {
+      return ['Error: Invalid CIDR block format.'];
+    }
+  };
+
+
+  // Handles the Enter key press in the input field
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' && !isProcessing) {
+      const command = currentInput.trim();
+      if (command) {
+        handleCommand(command);
+        setCurrentInput('');
+      }
+    }
+  };
+
+  // Helper function to handle a generic action from the GUI
+  const handleGuiAction = async (action, ...values) => {
+    setTerminalOutput(prev => [...prev, `> GUI Action: ${action}`, '']);
+    let output = [];
+
+    // Call the correct handler functions based on the GUI action
+    switch (action) {
+      case 'hash':
+        output = await handleTextHash(values[0]);
+        break;
+      case 'base64-encode':
+        output = handleBase64('encode', values[0]);
+        break;
+      case 'base64-decode':
+        output = handleBase64('decode', values[0]);
+        break;
+      case 'url-encode':
+        output = handleUrlEncodeDecode('url-encode', values[0]);
+        break;
+      case 'url-decode':
+        output = handleUrlEncodeDecode('url-decode', values[0]);
+        break;
+      case 'url-parse':
+        output = handleUrlParse(values[0]);
+        break;
+      case 'base64-url-encode':
+        output = handleBase64Url('encode', values[0]);
+        break;
+      case 'base64-url-decode':
+        output = handleBase64Url('decode', values[0]);
+        break;
+      case 'uuid':
+        output = handleUuidGen();
+        break;
+      case 'password-gen':
+        output = handlePasswordGen();
+        break;
+      case 'password-check':
+        output = handlePasswordCheck(values[0]);
+        break;
+      case 'ip-lookup':
+        output = await handleIpLookup(values[0]);
+        break;
+      case 'myip':
+        output = await handleMyIp();
+        break;
+      case 'dns-lookup':
+        output = await handleDnsLookup(values[0]);
+        break;
+      case 'port-check':
+        output = await handlePortCheck(values[0], values[1]);
+        break;
+      case 'timestamp-to-date':
+        output = handleTimestampToDate(values[0]);
+        break;
+      case 'markdown-to-html':
+        output = handleMarkdownToHtml(values[0]);
+        break;
+      case 'ip-range':
+        output = handleIpRange(values[0], values[1]);
+        break;
+      case 'cidr-to-range':
+        output = handleCidrToRange(values[0]);
+        break;
+      case 'hex-to-dec':
+        output = handleHexDecConversion('hex-to-dec', values[0]);
+        break;
+      case 'dec-to-hex':
+        output = handleHexDecConversion('dec-to-hex', values[0]);
+        break;
+      case 'hex-to-rgb':
+        output = handleHexRgbConversion(values[0]);
+        break;
+      case 'rgb-to-hex':
+        output = handleRgbHexConversion(values[0], values[1], values[2]);
+        break;
+      case 'string-trim':
+        output = handleStringTrim(values[0]);
+        break;
+      case 'string-replace':
+        output = handleStringReplace(values[0], values[1], values[2]);
+        break;
+      case 'case-convert':
+        output = handleCaseConvert(values[0], values[1]);
+        break;
+      case 'data-uri':
+        output = handleDataUriGen(values[0], values[1]);
+        break;
+      case 'json-to-yaml':
+        output = handleJsonToYaml(values[0]);
+        break;
+      case 'yaml-to-json':
+        output = handleYamlToJson(values[0]);
+        break;
+      case 'css-minify':
+        output = handleCssMinify(values[0]);
+        break;
+      case 'css-format':
+        output = handleCssFormat(values[0]);
+        break;
+      case 'jwt-decode':
+        output = handleJwtDecode(values[0]);
+        break;
+      case 'regex-test':
+        output = handleRegexTest(values[0], values[1]);
+        break;
+      case 'palette-gen':
+        output = handlePaletteGen();
+        break;
+      case 'clear-history':
+        localStorage.removeItem('terminalOutput');
+        setTerminalOutput(['Terminal history cleared. Your session will not be saved on reload.']);
+        setIsProcessing(false);
+        return;
+      default:
+        output = [`Error: GUI action not recognized.`];
+    }
+    setTerminalOutput(prev => [...prev, ...output, '']);
+  };
+
+  // Component for the "jaggy" GUI
+  const GuiInterface = () => {
+    const [hashInput, setHashInput] = useState('');
+    const [base64Input, setBase64Input] = useState('');
+    const [passwordCheckInput, setPasswordCheckInput] = useState('');
+    const [ipLookupInput, setIpLookupInput] = useState('');
+    const [dnsLookupInput, setDnsLookupInput] = useState('');
+    const [portCheckIp, setPortCheckIp] = useState('');
+    const [portCheckPort, setPortCheckPort] = useState('');
+    const [urlInput, setUrlInput] = useState('');
+    const [urlBase64Input, setUrlBase64Input] = useState('');
+    const [timestampInput, setTimestampInput] = useState('');
+    const [markdownInput, setMarkdownInput] = useState('');
+    const [ipRangeStart, setIpRangeStart] = useState('');
+    const [ipRangeCount, setIpRangeCount] = useState('');
+    const [cidrInput, setCidrInput] = useState('');
+    const [hexInput, setHexInput] = useState('');
+    const [decInput, setDecInput] = useState('');
+    const [stringReplaceSource, setStringReplaceSource] = useState('');
+    const [stringReplaceOld, setStringReplaceOld] = useState('');
+    const [stringReplaceNew, setStringReplaceNew] = useState('');
+    const [caseConvertText, setCaseConvertText] = useState('');
+    const [hexColorInput, setHexColorInput] = useState('');
+    const [rgbR, setRgbR] = useState('');
+    const [rgbG, setRgbG] = useState('');
+    const [rgbB, setRgbB] = useState('');
+    const [stringTrimInput, setStringTrimInput] = useState('');
+    const [dataUriMime, setDataUriMime] = useState('');
+    const [dataUriText, setDataUriText] = useState('');
+    const [jsonToYamlInput, setJsonToYamlInput] = useState('');
+    const [yamlToJsonInput, setYamlToJsonInput] = useState('');
+    const [cssMinifyInput, setCssMinifyInput] = useState('');
+    const [cssFormatInput, setCssFormatInput] = useState('');
+    const [jwtInput, setJwtInput] = useState('');
+    const [regexPattern, setRegexPattern] = useState('');
+    const [regexText, setRegexText] = useState('');
+
+
+    return (
+      <div className="w-full max-w-5xl h-[80vh] bg-black bg-opacity-80 rounded-xl border-4 border-gray-700 p-6 shadow-2xl overflow-y-scroll scrollbar-hide font-mono text-green-400">
+        <div className="flex justify-between items-center border-b-4 border-gray-700 pb-2 mb-4">
+          <h1 className="text-xl font-bold uppercase tracking-wider">Codra.GUI</h1>
+          <button
+            className="px-4 py-2 text-red-400 border-4 border-red-400 hover:bg-red-900 transition-colors"
+            onClick={() => setIsGuiMode(false)}
+          >
+            EXIT
+          </button>
+        </div>
+
+        {/* Console output section */}
+        <div
+          ref={terminalRef}
+          className="bg-gray-800 p-4 border-4 border-gray-700 h-[30%] mb-4 overflow-y-scroll scrollbar-hide"
+        >
+          <pre className="whitespace-pre-wrap leading-tight">
+            {terminalOutput.map((line, index) => (
+              <span key={index}>{line}<br /></span>
+            ))}
+          </pre>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Hashing Tool */}
+          <div className="bg-gray-800 p-4 border-4 border-gray-700">
+            <h2 className="text-lg mb-2 font-bold border-b border-gray-600 pb-1">Hashing</h2>
+            <input
+              type="text"
+              className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+              placeholder="Text to hash"
+              value={hashInput}
+              onChange={(e) => setHashInput(e.target.value)}
+            />
+            <button
+              className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+              onClick={() => handleGuiAction('hash', hashInput)}
+            >
+              GENERATE SHA-256 HASH
+            </button>
+          </div>
+
+          {/* Base64 & Base64-URL Tools */}
+          <div className="bg-gray-800 p-4 border-4 border-gray-700">
+            <h2 className="text-lg mb-2 font-bold border-b border-gray-600 pb-1">Base64 Encoding</h2>
+            <input
+              type="text"
+              className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+              placeholder="Text or hash"
+              value={base64Input}
+              onChange={(e) => setBase64Input(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <button
+                className="flex-1 p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                onClick={() => handleGuiAction('base64-encode', base64Input)}
+              >
+                ENCODE
+              </button>
+              <button
+                className="flex-1 p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                onClick={() => handleGuiAction('base64-decode', base64Input)}
+              >
+                DECODE
+              </button>
+            </div>
+            <input
+              type="text"
+              className="w-full p-2 mt-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+              placeholder="URL-safe Base64"
+              value={urlBase64Input}
+              onChange={(e) => setUrlBase64Input(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <button
+                className="flex-1 p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                onClick={() => handleGuiAction('base64-url-encode', urlBase64Input)}
+              >
+                URL ENCODE
+              </button>
+              <button
+                className="flex-1 p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                onClick={() => handleGuiAction('base64-url-decode', urlBase64Input)}
+              >
+                URL DECODE
+              </button>
+            </div>
+          </div>
+
+          {/* Password Tool */}
+          <div className="bg-gray-800 p-4 border-4 border-gray-700">
+            <h2 className="text-lg mb-2 font-bold border-b border-gray-600 pb-1">Password Tools</h2>
+            <button
+              className="w-full p-2 mb-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+              onClick={() => handleGuiAction('password-gen')}
+            >
+              GENERATE PASSWORD
+            </button>
+            <input
+              type="text"
+              className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+              placeholder="Password to check"
+              value={passwordCheckInput}
+              onChange={(e) => setPasswordCheckInput(e.target.value)}
+            />
+            <button
+              className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+              onClick={() => handleGuiAction('password-check', passwordCheckInput)}
+            >
+              CHECK STRENGTH
+            </button>
+          </div>
+
+          {/* URL Tools */}
+          <div className="bg-gray-800 p-4 border-4 border-gray-700 col-span-1 lg:col-span-2">
+            <h2 className="text-lg mb-2 font-bold border-b border-gray-600 pb-1">URL Tools</h2>
+            <input
+              type="text"
+              className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+              placeholder="Text or URL"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+            />
+            <div className="flex gap-2 mb-2">
+              <button
+                className="flex-1 p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                onClick={() => handleGuiAction('url-encode', urlInput)}
+              >
+                URL ENCODE
+              </button>
+              <button
+                className="flex-1 p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                onClick={() => handleGuiAction('url-decode', urlInput)}
+              >
+                URL DECODE
+              </button>
+              <button
+                className="flex-1 p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                onClick={() => handleGuiAction('url-parse', urlInput)}
+              >
+                URL PARSE
+              </button>
+            </div>
+          </div>
+
+          {/* Network Tools */}
+          <div className="bg-gray-800 p-4 border-4 border-gray-700 col-span-1 lg:col-span-1">
+            <h2 className="text-lg mb-2 font-bold border-b border-gray-600 pb-1">Network Tools</h2>
+            <button
+              className="w-full p-2 mb-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+              onClick={() => handleGuiAction('myip')}
+            >
+              MY PUBLIC IP
+            </button>
+            <input
+              type="text"
+              className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+              placeholder="IP Address"
+              value={ipLookupInput}
+              onChange={(e) => setIpLookupInput(e.target.value)}
+            />
+            <button
+              className="w-full p-2 mb-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+              onClick={() => handleGuiAction('ip-lookup', ipLookupInput)}
+            >
+              IP LOOKUP
+            </button>
+            <input
+              type="text"
+              className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+              placeholder="Domain for DNS Lookup"
+              value={dnsLookupInput}
+              onChange={(e) => setDnsLookupInput(e.target.value)}
+            />
+            <button
+              className="w-full p-2 mb-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+              onClick={() => handleGuiAction('dns-lookup', dnsLookupInput)}
+            >
+              DNS LOOKUP
+            </button>
+            <div className="flex gap-2 items-center mb-2">
+                <input
+                  type="text"
+                  className="w-1/2 p-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="IP"
+                  value={portCheckIp}
+                  onChange={(e) => setPortCheckIp(e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="w-1/2 p-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Port"
+                  value={portCheckPort}
+                  onChange={(e) => setPortCheckPort(e.target.value)}
+                />
+            </div>
+            <button
+              className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+              onClick={() => handleGuiAction('port-check', portCheckIp, portCheckPort)}
+            >
+              PORT CHECK
+            </button>
+          </div>
+
+          {/* New IP Range Generator & CIDR */}
+          <div className="bg-gray-800 p-4 border-4 border-gray-700 col-span-1 lg:col-span-1">
+            <h2 className="text-lg mb-2 font-bold border-b border-gray-600 pb-1">IP Range & CIDR</h2>
+            <input
+              type="text"
+              className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+              placeholder="Start IP (e.g., 192.168.1.1)"
+              value={ipRangeStart}
+              onChange={(e) => setIpRangeStart(e.target.value)}
+            />
+            <input
+              type="number"
+              className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+              placeholder="Count (e.g., 10)"
+              value={ipRangeCount}
+              onChange={(e) => setIpRangeCount(e.target.value)}
+            />
+            <button
+              className="w-full p-2 mb-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+              onClick={() => handleGuiAction('ip-range', ipRangeStart, ipRangeCount)}
+            >
+              GENERATE IP RANGE
+            </button>
+            <input
+              type="text"
+              className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+              placeholder="CIDR Block (e.g., 192.168.1.0/24)"
+              value={cidrInput}
+              onChange={(e) => setCidrInput(e.target.value)}
+            />
+            <button
+              className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+              onClick={() => handleGuiAction('cidr-to-range', cidrInput)}
+            >
+              CIDR TO RANGE
+            </button>
+          </div>
+
+          {/* Number & Base Conversion */}
+          <div className="bg-gray-800 p-4 border-4 border-gray-700 col-span-1 lg:col-span-2">
+            <h2 className="text-lg mb-2 font-bold border-b border-gray-600 pb-1">Number & Base Conversion</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <input
+                  type="text"
+                  className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Hexadecimal value"
+                  value={hexInput}
+                  onChange={(e) => setHexInput(e.target.value)}
+                />
+                <button
+                  className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                  onClick={() => handleGuiAction('hex-to-dec', hexInput)}
+                >
+                  HEX TO DECIMAL
+                </button>
+              </div>
+              <div>
+                <input
+                  type="number"
+                  className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Decimal value"
+                  value={decInput}
+                  onChange={(e) => setDecInput(e.target.value)}
+                />
+                <button
+                  className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                  onClick={() => handleGuiAction('dec-to-hex', decInput)}
+                >
+                  DECIMAL TO HEX
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <input
+                  type="text"
+                  className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Hex color code (#FFFFFF)"
+                  value={hexColorInput}
+                  onChange={(e) => setHexColorInput(e.target.value)}
+                />
+                <button
+                  className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                  onClick={() => handleGuiAction('hex-to-rgb', hexColorInput)}
+                >
+                  HEX TO RGB
+                </button>
+              </div>
+              <div>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="number"
+                    className="w-1/3 p-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                    placeholder="R"
+                    value={rgbR}
+                    onChange={(e) => setRgbR(e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    className="w-1/3 p-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                    placeholder="G"
+                    value={rgbG}
+                    onChange={(e) => setRgbG(e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    className="w-1/3 p-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                    placeholder="B"
+                    value={rgbB}
+                    onChange={(e) => setRgbB(e.target.value)}
+                  />
+                </div>
+                <button
+                  className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                  onClick={() => handleGuiAction('rgb-to-hex', rgbR, rgbG, rgbB)}
+                >
+                  RGB TO HEX
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* String Manipulation */}
+          <div className="bg-gray-800 p-4 border-4 border-gray-700 col-span-1 md:col-span-2 lg:col-span-3">
+            <h2 className="text-lg mb-2 font-bold border-b border-gray-600 pb-1">String Manipulation</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <input
+                  type="text"
+                  className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Source text"
+                  value={stringReplaceSource}
+                  onChange={(e) => setStringReplaceSource(e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Find this"
+                  value={stringReplaceOld}
+                  onChange={(e) => setStringReplaceOld(e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Replace with this"
+                  value={stringReplaceNew}
+                  onChange={(e) => setStringReplaceNew(e.target.value)}
+                />
+                <button
+                  className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                  onClick={() => handleGuiAction('string-replace', stringReplaceOld, stringReplaceNew, stringReplaceSource)}
+                >
+                  REPLACE
+                </button>
+              </div>
+              <div>
+                <input
+                  type="text"
+                  className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Text to convert"
+                  value={caseConvertText}
+                  onChange={(e) => setCaseConvertText(e.target.value)}
+                />
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    className="p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                    onClick={() => handleGuiAction('case-convert', 'upper', caseConvertText)}
+                  >
+                    UPPER
+                  </button>
+                  <button
+                    className="p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                    onClick={() => handleGuiAction('case-convert', 'lower', caseConvertText)}
+                  >
+                    LOWER
+                  </button>
+                  <button
+                    className="p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                    onClick={() => handleGuiAction('case-convert', 'title', caseConvertText)}
+                  >
+                    TITLE
+                  </button>
+                  <button
+                    className="p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                    onClick={() => handleGuiAction('case-convert', 'camel', caseConvertText)}
+                  >
+                    camelCase
+                  </button>
+                  <button
+                    className="p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                    onClick={() => handleGuiAction('case-convert', 'snake', caseConvertText)}
+                  >
+                    snake_case
+                  </button>
+                  <button
+                    className="p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                    onClick={() => handleGuiAction('case-convert', 'kebab', caseConvertText)}
+                  >
+                    kebab-case
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="w-full p-2 mt-4 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Text to trim"
+                  value={stringTrimInput}
+                  onChange={(e) => setStringTrimInput(e.target.value)}
+                />
+                <button
+                  className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                  onClick={() => handleGuiAction('string-trim', stringTrimInput)}
+                >
+                  TRIM WHITESPACE
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* New JSON/YAML Converter, CSS, JWT, Regex, Palette */}
+          <div className="bg-gray-800 p-4 border-4 border-gray-700 col-span-1 md:col-span-2 lg:col-span-3">
+            <h2 className="text-lg mb-2 font-bold border-b border-gray-600 pb-1">JSON, YAML, CSS & More</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <textarea
+                  className="w-full p-2 mb-2 h-32 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="JSON or YAML input"
+                  value={jsonToYamlInput}
+                  onChange={(e) => setJsonToYamlInput(e.target.value)}
+                ></textarea>
+                <div className="flex gap-2">
+                  <button
+                    className="flex-1 p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                    onClick={() => handleGuiAction('json-to-yaml', jsonToYamlInput)}
+                  >
+                    JSON TO YAML
+                  </button>
+                  <button
+                    className="flex-1 p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                    onClick={() => handleGuiAction('yaml-to-json', jsonToYamlInput)}
+                  >
+                    YAML TO JSON
+                  </button>
+                </div>
+              </div>
+              <div>
+                <textarea
+                  className="w-full p-2 mb-2 h-32 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="CSS input"
+                  value={cssMinifyInput}
+                  onChange={(e) => setCssMinifyInput(e.target.value)}
+                ></textarea>
+                <div className="flex gap-2">
+                  <button
+                    className="flex-1 p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                    onClick={() => handleGuiAction('css-minify', cssMinifyInput)}
+                  >
+                    MINIFY CSS
+                  </button>
+                  <button
+                    className="flex-1 p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                    onClick={() => handleGuiAction('css-format', cssMinifyInput)}
+                  >
+                    FORMAT CSS
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <textarea
+                  className="w-full p-2 mb-2 h-32 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Enter a JWT to decode"
+                  value={jwtInput}
+                  onChange={(e) => setJwtInput(e.target.value)}
+                ></textarea>
+                <button
+                  className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                  onClick={() => handleGuiAction('jwt-decode', jwtInput)}
+                >
+                  DECODE JWT
+                </button>
+              </div>
+              <div>
+                <input
+                  type="text"
+                  className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Regex Pattern"
+                  value={regexPattern}
+                  onChange={(e) => setRegexPattern(e.target.value)}
+                />
+                <textarea
+                  className="w-full p-2 mb-2 h-20 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                  placeholder="Text to test"
+                  value={regexText}
+                  onChange={(e) => setRegexText(e.target.value)}
+                ></textarea>
+                <button
+                  className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                  onClick={() => handleGuiAction('regex-test', regexPattern, regexText)}
+                >
+                  TEST REGEX
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex justify-center mt-4">
+              <button
+                className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                onClick={() => handleGuiAction('palette-gen')}
+              >
+                GENERATE COLOR PALETTE
+              </button>
+            </div>
+          </div>
+
+          {/* Other Tools */}
+          <div className="bg-gray-800 p-4 border-4 border-gray-700 col-span-1 md:col-span-2 lg:col-span-3">
+            <h2 className="text-lg mb-2 font-bold border-b border-gray-600 pb-1">Miscellaneous</h2>
+             <div className="flex gap-2">
+                <button
+                  className="w-full p-2 mb-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                  onClick={() => handleGuiAction('uuid')}
+                >
+                  GENERATE UUID
+                </button>
+                <button
+                  className="w-full p-2 mb-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                  onClick={() => setTerminalOutput(prev => [...prev, ...handleEpochTime(), ''])}
+                >
+                  GET EPOCH TIME
+                </button>
+                <button
+                  className="w-full p-2 mb-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+                  onClick={() => handleGuiAction('clear-history')}
+                >
+                  CLEAR LOCAL HISTORY
+                </button>
+            </div>
+            <input
+              type="text"
+              className="w-full p-2 mb-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+              placeholder="Unix Timestamp"
+              value={timestampInput}
+              onChange={(e) => setTimestampInput(e.target.value)}
+            />
+            <button
+              className="w-full p-2 mb-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+              onClick={() => handleGuiAction('timestamp-to-date', timestampInput)}
+            >
+              CONVERT TIMESTAMP
+            </button>
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                className="w-1/3 p-2 my-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                placeholder="MIME (text/plain)"
+                value={dataUriMime}
+                onChange={(e) => setDataUriMime(e.target.value)}
+              />
+              <input
+                type="text"
+                className="w-2/3 p-2 my-2 bg-gray-900 border-2 border-gray-600 focus:outline-none focus:border-green-400"
+                placeholder="Text"
+                value={dataUriText}
+                onChange={(e) => setDataUriText(e.target.value)}
+              />
+            </div>
+            <button
+              className="w-full p-2 bg-green-700 hover:bg-green-600 transition-colors border-2 border-green-400"
+              onClick={() => handleGuiAction('data-uri', dataUriMime, dataUriText)}
+            >
+              GENERATE DATA URI
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Main render logic: chooses between Terminal and GUI
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-green-400 p-4 font-mono text-sm sm:text-base">
+      {!isGuiMode ? (
+        <div
+          ref={terminalRef}
+          className="w-full max-w-5xl h-[80vh] bg-black bg-opacity-80 rounded-xl border-4 border-gray-700 p-6 overflow-y-scroll scrollbar-hide shadow-2xl"
+          onClick={() => document.getElementById('terminal-input').focus()}
+        >
+          <pre className="whitespace-pre-wrap leading-tight">
+            {terminalOutput.map((line, index) => (
+              <span key={index}>{line}<br /></span>
+            ))}
+            {/* User input line */}
+            <span className="flex items-center">
+              <span className="mr-2">&gt;</span>
+              <input
+                id="terminal-input"
+                type="text"
+                className="flex-grow bg-transparent text-green-400 focus:outline-none"
+                value={currentInput}
+                onChange={(e) => setCurrentInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isProcessing}
+                autoFocus
+              />
+            </span>
+          </pre>
+        </div>
+      ) : (
+        <GuiInterface />
+      )}
+      <div className="mt-4 text-gray-500 font-mono text-xs">
+        Made with ❤️ by arXiVius
+      </div>
+    </div>
+  );
+}
